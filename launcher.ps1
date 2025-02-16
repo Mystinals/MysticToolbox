@@ -12,7 +12,7 @@ try {
     # Download required files
     $baseUrl = "https://raw.githubusercontent.com/Mystinals/MysticToolbox/main"
     $files = @{
-        "MTB.exe" = "$baseUrl/binn/MTB.exe"
+        "MTB.exe" = "$baseUrl/bin/MTB.exe"
         "software-list.json" = "$baseUrl/data/software-list.json"
     }
 
