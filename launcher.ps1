@@ -12,27 +12,15 @@ try {
     # Download required files
     $baseUrl = "https://raw.githubusercontent.com/Mystinals/MysticToolbox/main"
     $files = @{
-        "MTB.exe" = "$baseUrl/binn/MTB.exe"
+        "MTB.exe" = "$baseUrl/bin/MTB.exe"
         "software-list.json" = "$baseUrl/data/software-list.json"
     }
 
     Write-Host "Downloading required files..." -ForegroundColor Cyan
-    
     foreach ($file in $files.GetEnumerator()) {
         $output = Join-Path $tempDir $file.Key
         Write-Host "  -> $($file.Key)" -ForegroundColor Gray
-        Write-Host "     URL: $($file.Value)" -ForegroundColor DarkGray
-        
-        try {
-            $response = Invoke-WebRequest -Uri $file.Value -OutFile $output -UseBasicParsing -Verbose
-            Write-Host "     Status: $($response.StatusCode)" -ForegroundColor Green
-        }
-        catch {
-            Write-Host "     Error details:" -ForegroundColor Red
-            Write-Host "     StatusCode: $($_.Exception.Response.StatusCode)" -ForegroundColor Red
-            Write-Host "     StatusDescription: $($_.Exception.Response.StatusDescription)" -ForegroundColor Red
-            throw
-        }
+        Invoke-WebRequest -Uri $file.Value -OutFile $output
     }
 
     # Run the application

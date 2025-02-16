@@ -1,0 +1,101 @@
+{
+  "format": 1,
+  "restore": {
+    "S:\\MysticToolbox-V2\\MTB\\MTB.csproj": {}
+  },
+  "projects": {
+    "S:\\MysticToolbox-V2\\MTB\\MTB.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "S:\\MysticToolbox-V2\\MTB\\MTB.csproj",
+        "projectName": "MTB",
+        "projectPath": "S:\\MysticToolbox-V2\\MTB\\MTB.csproj",
+        "packagesPath": "C:\\Users\\Mystic\\.nuget\\packages\\",
+        "outputPath": "S:\\MysticToolbox-V2\\MTB\\obj\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "C:\\Users\\Mystic\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net9.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net9.0": {
+            "targetAlias": "net9.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "all"
+        }
+      },
+      "frameworks": {
+        "net9.0": {
+          "targetAlias": "net9.0",
+          "dependencies": {
+            "Microsoft.NET.ILLink.Tasks": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[9.0.0-preview.6.24327.7, )",
+              "autoReferenced": true
+            },
+            "System.Management.Automation": {
+              "target": "Package",
+              "version": "[7.5.0, )"
+            },
+            "Terminal.Gui": {
+              "target": "Package",
+              "version": "[1.17.1, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "downloadDependencies": [
+            {
+              "name": "Microsoft.AspNetCore.App.Runtime.win-x64",
+              "version": "[9.0.0-preview.6.24328.4, 9.0.0-preview.6.24328.4]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Runtime.win-x64",
+              "version": "[9.0.0-preview.6.24327.7, 9.0.0-preview.6.24327.7]"
+            },
+            {
+              "name": "Microsoft.WindowsDesktop.App.Runtime.win-x64",
+              "version": "[9.0.0-preview.6.24327.6, 9.0.0-preview.6.24327.6]"
+            }
+          ],
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.100-preview.6.24328.19/PortableRuntimeIdentifierGraph.json"
+        }
+      },
+      "runtimes": {
+        "win-x64": {
+          "#import": []
+        }
+      }
+    }
+  }
+}
