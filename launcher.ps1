@@ -12,8 +12,8 @@ try {
     # Download required files
     $baseUrl = "https://raw.githubusercontent.com/Mystinals/MysticToolbox/main"
     $files = @{
-        "MTB.exe" = "$baseUrl/Windows/Softwares/MTB.exe"
-        "software-list.json" = "$baseUrl/Windows/Softwares/software-list.json"
+        "MTB.exe" = "$baseUrl/binn/MTB.exe"
+        "software-list.json" = "$baseUrl/data/software-list.json"
     }
 
     Write-Host "Downloading required files..." -ForegroundColor Cyan
