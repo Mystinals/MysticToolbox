@@ -20,29 +20,22 @@ $script:consoleHeight = $Host.UI.RawUI.WindowSize.Height
 $script:viewportTop = 0  # Track scrolling position
 $script:itemsPerPage = $consoleHeight - 8  # Reserve space for header and footer
 
-# Modify the JSON path to use the script's directory or a temp directory
-$scriptPath = $MyInvocation.MyCommand.Path
-$scriptDirectory = Split-Path -Parent $scriptPath
-$jsonPath = Join-Path $scriptDirectory "software-list.json"
+# Use temp directory for downloaded files
+$tempDir = [System.IO.Path]::GetTempPath()
+$jsonPath = Join-Path $tempDir "software-list.json"
+$scriptPath = Join-Path $tempDir "software-list.json"
 
-# If the JSON is not in the script directory, use a temp path
-if (-not (Test-Path $jsonPath)) {
-    $jsonPath = Join-Path $env:TEMP "software-list.json"
-}
-
-# Read and parse the JSON file with more robust error handling
+# Read and parse the JSON file
 try {
-    # If JSON doesn't exist, download it
-    if (-not (Test-Path $jsonPath)) {
-        # Replace with the actual raw GitHub URL for software-list.json
-        $jsonUrl = "https://raw.githubusercontent.com/Mystinals/MysticToolbox/main/software-list.json"
-        Invoke-WebRequest -Uri $jsonUrl -OutFile $jsonPath
-    }
+    # GitHub raw file URLs
+    $jsonUrl = "https://raw.githubusercontent.com/Mystinals/MysticToolbox/main/Windows/Softwares/software-list.json"
+    
+    # Download JSON file
+    Invoke-WebRequest -Uri $jsonUrl -OutFile $jsonPath -ErrorAction Stop
 
     $jsonContent = Get-Content -Path $jsonPath -Raw -ErrorAction Stop
     $jsonData = $jsonContent | ConvertFrom-Json
 
-    # Rest of the script remains the same...
     # Flatten sections into software array with section information
     $software = @()
     $totalSections = 0
@@ -63,7 +56,7 @@ try {
     }
 } catch {
     Write-Host "Error reading software list: $_" -ForegroundColor Red
-    Write-Host "Unable to locate or download software-list.json" -ForegroundColor Yellow
+    Write-Host "Unable to download software-list.json" -ForegroundColor Yellow
     Write-Host "Press any key to exit..."
     $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
     exit
