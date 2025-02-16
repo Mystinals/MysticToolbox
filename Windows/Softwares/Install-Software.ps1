@@ -119,6 +119,35 @@ function Draw-Footer {
     Write-Host $scrollInfo -ForegroundColor Gray
 }
 
+
+
+function Clear-ScreenInPlace {
+    $Host.UI.RawUI.CursorPosition = @{X=0; Y=0}
+    Write-Host (" " * $consoleWidth) -NoNewline
+    
+    for ($i = 1; $i -lt $consoleHeight; $i++) {
+        $Host.UI.RawUI.CursorPosition = @{X=0; Y=$i}
+        Write-Host (" " * $consoleWidth) -NoNewline
+    }
+}
+
+function Update-ConsoleSize {
+    $script:consoleWidth = $Host.UI.RawUI.WindowSize.Width
+    $script:consoleHeight = $Host.UI.RawUI.WindowSize.Height
+    $script:itemsPerPage = $consoleHeight - 8  # Reserve space for header and footer
+    
+    # Ensure viewport stays within bounds
+    $totalItems = ($software | Measure-Object).Count
+    $maxViewportTop = [Math]::Max(0, $totalItems - $itemsPerPage)
+    if ($script:viewportTop -gt $maxViewportTop) {
+        $script:viewportTop = $maxViewportTop
+    }
+    
+    Clear-ScreenInPlace
+    Draw-Header
+    Show-Menu $selectedIndex
+}
+
 function Show-Menu {
     param (
         [int]$selectedIndex
@@ -248,37 +277,43 @@ function Show-Menu {
 }
 
 function Check-InstalledSoftware {
-    # Clear previous job data
-    Remove-Job -State Completed -ErrorAction SilentlyContinue
-
-    # Start a job for each software item to check its status in parallel
+    # Update all statuses to checking
     foreach ($item in $software) {
         $item.Status = "Checking..."
         $item.ErrorMessage = $null
+    }
+    Show-Menu $selectedIndex
 
-        Start-Job -ScriptBlock {
-            param ($id)
-            $checkResult = winget list --id $id --accept-source-agreements 2>$null
-            if ($checkResult -match $id) {
-                return "Installed"
-            } else {
-                return "Not Installed"
+    # Get all installed packages in one call
+    try {
+        $installedPackages = winget list --accept-source-agreements | Out-String
+        
+        # Create a hashtable for faster lookups
+        $installedHash = @{}
+        $installedPackages -split "`n" | ForEach-Object {
+            $line = $_ -replace '\s+', ' '
+            if ($line -match '\s([^.\s]+\.[^.\s]+)\s') {
+                $id = $matches[1]
+                $installedHash[$id] = $true
             }
-        } -ArgumentList $item.ID | Out-Null
+        }
+
+        # Update status for all software items
+        foreach ($item in $software) {
+            if ($installedHash.ContainsKey($item.ID)) {
+                $item.Status = "Installed"
+            } else {
+                $item.Status = "Not Installed"
+            }
+        }
+    } catch {
+        foreach ($item in $software) {
+            $item.Status = "Check Failed"
+            $item.ErrorMessage = "Error: Unable to check installation status"
+        }
     }
 
-    # Wait for all jobs to complete and update the status
-    while (Get-Job -State Running) {
-        Start-Sleep -Milliseconds 100
-    }
-
-    $jobs = Get-Job | Receive-Job
-    for ($i = 0; $i -lt $software.Count; $i++) {
-        $software[$i].Status = $jobs[$i]
-    }
-
-    # Clean up completed jobs
-    Remove-Job -State Completed -ErrorAction SilentlyContinue
+    Show-Menu $selectedIndex
 }
 
 # The rest of your script remains the same...
@@ -341,11 +376,42 @@ function Process-SelectedSoftware {
     Check-InstalledSoftware
 }
 
-# Initial setup
-$Host.UI.RawUI.BufferSize = New-Object System.Management.Automation.Host.Size(500, 9999)
-$Host.UI.RawUI.WindowSize = New-Object System.Management.Automation.Host.Size($consoleWidth, $consoleHeight)
+function Update-ConsoleSize {
+    $script:consoleWidth = $Host.UI.RawUI.WindowSize.Width
+    $script:consoleHeight = $Host.UI.RawUI.WindowSize.Height
+    $script:itemsPerPage = $consoleHeight - 8  # Reserve space for header and footer
+    
+    # Redraw the entire screen
+    Clear-Host
+    Draw-Header
+    Show-Menu $selectedIndex
+}
 
-Draw-Header
+function Clear-ScreenInPlace {
+    # Save cursor position
+    $cursorPosition = $Host.UI.RawUI.CursorPosition
+
+    # Clear only the menu area (from row 1 to bottom), preserving cursor
+    for ($i = 1; $i -lt $Host.UI.RawUI.WindowSize.Height; $i++) {
+        $Host.UI.RawUI.CursorPosition = @{X=0; Y=$i}
+        Write-Host (" " * $Host.UI.RawUI.WindowSize.Width) -NoNewline
+    }
+
+    # Restore cursor position
+    $Host.UI.RawUI.CursorPosition = $cursorPosition
+}
+
+# Set buffer size equal to window size to prevent scrolling
+$windowSize = New-Object System.Management.Automation.Host.Size($Host.UI.RawUI.WindowSize.Width, $Host.UI.RawUI.WindowSize.Height)
+$Host.UI.RawUI.BufferSize = $windowSize
+
+# Add window resize event handler
+$Host.UI.RawUI.add_WindowSizeChanged({
+    Update-ConsoleSize
+})
+
+# Initial console setup
+Update-ConsoleSize
 $selectedIndex = 0
 Show-Menu $selectedIndex
 
