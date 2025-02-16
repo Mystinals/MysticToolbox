@@ -8,11 +8,11 @@ New-Item -ItemType Directory -Force -Path $tempDir | Out-Null
 Push-Location $tempDir
 try {
     # Download required files
-    $baseUrl = "https://raw.githubusercontent.com/Mystinals/MysticToolbox/main/bin/Release/net9.0/win-x64"
+    $baseUrl = "https://raw.githubusercontent.com/Mystinals/MysticToolbox/main"
     $files = @{
-        "MTB.exe" = "$baseUrl/MTB.exe"
-        "MTB.dll" = "$baseUrl/MTB.dll"
-        "software-list.json" = "https://raw.githubusercontent.com/Mystinals/MysticToolbox/main/data/software-list.json"
+        "MTB.exe" = "$baseUrl/bin/Release/net9.0/win-x64/MTB.exe"
+        "MTB.dll" = "$baseUrl/bin/Release/net9.0/win-x64/MTB.dll"
+        "software-list.json" = "$baseUrl/data/software-list.json"
     }
     Write-Host "Downloading required files..." -ForegroundColor Cyan
     
