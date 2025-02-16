@@ -59,7 +59,9 @@ function Draw-Header {
     $title = "Software Installation Menu"
     $lineWidth = [Math]::Min($consoleWidth - 4, 80)
     $leftPadding = [math]::Floor(($consoleWidth - $lineWidth) / 2)
-    $line = "─" * [math]::Floor(($lineWidth - $title.Length - 4) / 2) + "┤ $title ├" + "─" * [math]::Ceiling(($lineWidth - $title.Length - 4) / 2)
+    
+    # Use standard ASCII characters instead of Unicode
+    $line = "-" * [math]::Floor(($lineWidth - $title.Length - 4) / 2) + "| " + $title + " |" + "-" * [math]::Ceiling(($lineWidth - $title.Length - 4) / 2)
 
     $Host.UI.RawUI.CursorPosition = @{X=$leftPadding; Y=1}
     Write-Host $line -ForegroundColor Cyan
@@ -75,7 +77,7 @@ function Draw-Footer {
 
     $lineWidth = [Math]::Min($consoleWidth - 4, 80)
     $leftPadding = [math]::Floor(($consoleWidth - $lineWidth) / 2)
-    $line = "─" * $lineWidth
+    $line = "-" * $lineWidth
 
     $Host.UI.RawUI.CursorPosition = @{X=0; Y=$consoleHeight-4}
     Write-Host (" " * $leftPadding) -NoNewline
@@ -83,7 +85,7 @@ function Draw-Footer {
 
     # Controls
     $controls = @(
-        @{ Text = "[↑↓] Navigate"; Color = "Gray" }
+        @{ Text = "[Up/Down] Navigate"; Color = "Gray" }
         @{ Text = "[i] Install"; Color = "Green" }
         @{ Text = "[u] Uninstall"; Color = "Red" }
         @{ Text = "[r] Refresh"; Color = "Yellow" }
@@ -169,7 +171,7 @@ function Show-Menu {
 
         # Section header
         if ($currentRow -ge $viewportTop -and $currentRow -lt ($viewportTop + $itemsPerPage)) {
-            $sectionText = "─── $section ───"
+            $sectionText = "--- $section ---"
             $headerPadding = [math]::Floor(($menuWidth - $sectionText.Length) / 2)
             $Host.UI.RawUI.CursorPosition = @{X=$leftMargin + $headerPadding; Y=$row}
             Write-Host $sectionText -ForegroundColor Cyan
@@ -204,7 +206,10 @@ function Show-Menu {
                 $statusDisplay = "[$($item.Status)]".PadLeft($statusWidth)
 
                 $Host.UI.RawUI.CursorPosition = @{X=$leftMargin; Y=$row}
-                Write-Host $prefixDisplay -NoNewline -ForegroundColor ($item.Action -eq 'uninstall' ? 'Red' : 'Green')
+                
+                # Replace ternary operator with if-else
+                $prefixColor = if ($item.Action -eq 'uninstall') { 'Red' } else { 'Green' }
+                Write-Host $prefixDisplay -NoNewline -ForegroundColor $prefixColor
 
                 if ($index -eq $selectedIndex) {
                     Write-Host $nameDisplay -NoNewline -ForegroundColor Black -BackgroundColor White
