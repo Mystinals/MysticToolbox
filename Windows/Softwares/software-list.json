@@ -57,6 +57,44 @@
             ]
         },
         {
+            "name": "Monitoring",
+            "software": [
+                {
+                    "name": "HWiNFO",
+                    "id": "REALiX.HWiNF"
+                },
+                {
+                    "name": "CPUID CPU-Z",
+                    "id": "CPUID.CPU-Z"
+                },
+                {
+                    "name": "FurMark",
+                    "id": "Geeks3D.FurMark"
+                },
+                {
+                    "name": "HWMonitor",
+                    "id": "CPUID.HWMonitor"
+                },
+                {
+                    "name": "Core Temp",
+                    "id": "ALCPU.CoreTemp"
+                },
+                {
+                    "name": "AIDA64 Extreme",
+                    "id": "FinalWire.AIDA64.Extreme"
+                }
+            ]
+        },
+        {
+            "name": "Benchmark",
+            "software": [
+                {
+                    "name": "OCCT",
+                    "id": "occt.occt"
+                }
+            ]
+        },
+        {
             "name": "Music",
             "software": [
                 {
@@ -101,6 +139,23 @@
                 {
                     "name": ".NET 9 Desktop Runtime",
                     "id": "Microsoft.DotNet.DesktopRuntime.9"
+                }
+            ]
+        },
+        {
+            "name": "Drivers",
+            "software": [
+                {
+                    "name": "DriversCloud.com",
+                    "id": "Cybelsoft.DriversCloud"
+                },
+                {
+                    "name": "Snappy Driver Installer",
+                    "id": "samlab-ws.SnappyDriverInstaller"
+                },
+                {
+                    "name": "Display Driver Uninstaller",
+                    "id": "Wagnardsoft.DisplayDriverUninstaller"
                 }
             ]
         }
