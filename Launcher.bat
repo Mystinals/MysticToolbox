@@ -40,7 +40,7 @@ exit /b 1
 
 :LAUNCH
 :: Download and execute the browser script silently
-powershell -NoProfile -Command "$browserScript = Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Mystinals/MysticToolbox/main/Scripts/Browser.ps1' -UseBasicParsing; Set-Content -Path '%temp%\MysticBrowser.ps1' -Value $browserScript.Content; Start-Process pwsh -Verb RunAs -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', '%temp%\MysticBrowser.ps1', 'https://api.github.com/repos/Mystinals/MysticToolbox/contents/Scripts' -WindowStyle Normal"
+powershell -NoProfile -Command "$browserScript = Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Mystinals/MysticToolbox/main/Scripts/Browser.ps1' -UseBasicParsing; Set-Content -Path '%temp%\MysticBrowser.ps1' -Value $browserScript.Content; $startInfo = New-Object System.Diagnostics.ProcessStartInfo; $startInfo.FileName = 'pwsh.exe'; $startInfo.Arguments = '-NoProfile -ExecutionPolicy Bypass -File %temp%\MysticBrowser.ps1 https://api.github.com/repos/Mystinals/MysticToolbox/contents/Scripts'; $startInfo.UseShellExecute = $true; $startInfo.Verb = 'runas'; $startInfo.WindowStyle = 'Normal'; [System.Diagnostics.Process]::Start($startInfo)"
 
 :: Close this window immediately
 (goto) 2>nul & del "%~f0"
