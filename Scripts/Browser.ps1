@@ -1,5 +1,12 @@
-# MysticToolbox Local Directory Browser
-# Version: 1.0
+# MysticToolbox GitHub Browser
+# Version: 2.0
+
+param(
+    [string]$InitialPath = "https://api.github.com/repos/Mystinals/MysticToolbox/contents"
+)
+
+$script:repoCache = @{}
+$script:contentCache = @{}
 
 function Get-CenteredString {
     param (
@@ -24,34 +31,82 @@ function Get-BoxCenteredText {
     return (" " * [math]::Floor($padding)) + $Text + (" " * [math]::Ceiling($padding))
 }
 
+function Get-GitHubContent {
+    param (
+        [string]$Path
+    )
+    
+    if ($script:repoCache.ContainsKey($Path)) {
+        return $script:repoCache[$Path]
+    }
+    
+    try {
+        $response = Invoke-RestMethod -Uri $Path -Method Get -Headers @{
+            "Accept" = "application/vnd.github.v3+json"
+        }
+        $script:repoCache[$Path] = $response
+        return $response
+    }
+    catch {
+        Write-Host "Error fetching GitHub content: $_" -ForegroundColor Red
+        return $null
+    }
+}
+
+function Get-ScriptContent {
+    param (
+        [string]$DownloadUrl
+    )
+    
+    if ($script:contentCache.ContainsKey($DownloadUrl)) {
+        return $script:contentCache[$DownloadUrl]
+    }
+    
+    try {
+        $content = Invoke-RestMethod -Uri $DownloadUrl -Method Get
+        $script:contentCache[$DownloadUrl] = $content
+        return $content
+    }
+    catch {
+        Write-Host "Error downloading script content: $_" -ForegroundColor Red
+        return $null
+    }
+}
+
 function Show-Menu {
     param (
-        [string]$Path = $PWD
+        [string]$Path = $InitialPath,
+        [string]$ParentPath = $null
     )
     
     $items = @()
-    if ($Path -ne $PWD) {
+    if ($ParentPath) {
         $items += @{
             Name = ".."
             Type = "Parent"
-            FullPath = (Split-Path $Path -Parent)
+            Path = $ParentPath
         }
     }
     
-    Get-ChildItem $Path -Directory | ForEach-Object {
-        $items += @{
-            Name = $_.Name
-            Type = "Directory"
-            FullPath = $_.FullName
-        }
+    $content = Get-GitHubContent -Path $Path
+    if ($null -eq $content) {
+        Write-Host "Unable to fetch repository content. Please check your internet connection." -ForegroundColor Red
+        return
     }
     
-    Get-ChildItem $Path -Filter "*.ps1" | ForEach-Object {
-        if ($_.Name -ne 'local-menu.ps1') {
+    foreach ($item in $content) {
+        if ($item.type -eq "dir") {
             $items += @{
-                Name = $_.Name
+                Name = $item.name
+                Type = "Directory"
+                Path = $item.url
+            }
+        }
+        elseif ($item.type -eq "file" -and $item.name -like "*.ps1") {
+            $items += @{
+                Name = $item.name
                 Type = "Script"
-                FullPath = $_.FullName
+                Path = $item.download_url
             }
         }
     }
@@ -64,22 +119,21 @@ function Show-Menu {
         $boxWidth = Get-BoxWidth
         $horizontalLine = "-" * ($boxWidth - 2)
         
-        # Display top box
-        $topBox = @(
+        # Display header
+        $header = @(
             (Get-CenteredString "+$horizontalLine+"),
-            (Get-CenteredString "|$(Get-BoxCenteredText 'MysticToolbox Directory' ($boxWidth - 2))|"),
+            (Get-CenteredString "|$(Get-BoxCenteredText 'MysticToolbox GitHub Browser' ($boxWidth - 2))|"),
             (Get-CenteredString "|$(Get-BoxCenteredText "PowerShell Version: $($PSVersionTable.PSVersion.ToString())" ($boxWidth - 2))|"),
-            (Get-CenteredString "|$(Get-BoxCenteredText "Current Path: $Path" ($boxWidth - 2))|"),
             (Get-CenteredString "+$horizontalLine+")
         )
         
-        foreach ($line in $topBox) {
-            Write-Host $line -ForegroundColor 'Cyan'
+        foreach ($line in $header) {
+            Write-Host $line -ForegroundColor Cyan
         }
         
         Write-Host ""
         
-        # Display menu items
+        # Display items
         foreach ($i in 0..($items.Count - 1)) {
             $item = $items[$i]
             $prefix = switch ($item.Type) {
@@ -92,35 +146,29 @@ function Show-Menu {
                 "Parent" { 'Gray' }
                 "Directory" { 'Cyan' }
                 "Script" { 'Green' }
-                default { 'White' }  # Fallback color
             }
             
             $itemText = "$prefix $($item.Name)"
             $centeredText = Get-CenteredString $itemText
-
+            
             if ($i -eq $selectedIndex) {
-                $textStart = $centeredText.IndexOf($itemText)
-                $textLength = $itemText.Length
-                Write-Host $centeredText.Substring(0, $textStart) -NoNewline
-                Write-Host $centeredText.Substring($textStart, $textLength) -ForegroundColor 'Black' -BackgroundColor 'White' -NoNewline
-                Write-Host $centeredText.Substring($textStart + $textLength)
+                Write-Host $centeredText -ForegroundColor Black -BackgroundColor White
             }
             else {
                 Write-Host $centeredText -ForegroundColor $color
             }
         }
         
-        # Display bottom box
+        # Display footer
         Write-Host ""
-        $bottomBox = @(
+        $footer = @(
             (Get-CenteredString "+$horizontalLine+"),
-            (Get-CenteredString "|$(Get-BoxCenteredText 'Navigation Controls' ($boxWidth - 2))|"),
-            (Get-CenteredString "|$(Get-BoxCenteredText 'UP/DOWN (Move) | Enter (Select) | Backspace (Back) | Esc (Exit)' ($boxWidth - 2))|"),
+            (Get-CenteredString "|$(Get-BoxCenteredText 'Navigation: ↑↓ (Move) | Enter (Select) | Esc (Exit)' ($boxWidth - 2))|"),
             (Get-CenteredString "+$horizontalLine+")
         )
         
-        foreach ($line in $bottomBox) {
-            Write-Host $line -ForegroundColor 'DarkCyan'
+        foreach ($line in $footer) {
+            Write-Host $line -ForegroundColor DarkCyan
         }
         
         $key = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
@@ -135,53 +183,65 @@ function Show-Menu {
             13 { # Enter
                 $selected = $items[$selectedIndex]
                 switch ($selected.Type) {
-                    "Parent" { Show-Menu -Path $selected.FullPath }
-                    "Directory" { Show-Menu -Path $selected.FullPath }
+                    "Parent" { Show-Menu -Path $selected.Path }
+                    "Directory" { Show-Menu -Path $selected.Path -ParentPath $Path }
                     "Script" {
                         Clear-Host
                         Write-Host (Get-CenteredString "+$('-' * 40)+") -ForegroundColor Yellow
                         Write-Host (Get-CenteredString "|$(Get-BoxCenteredText 'Execute Script?' 38)|") -ForegroundColor Yellow
                         Write-Host (Get-CenteredString "|$(Get-BoxCenteredText $selected.Name 38)|") -ForegroundColor White
-                        Write-Host (Get-CenteredString "|$(Get-BoxCenteredText 'Press Enter to confirm or Esc to cancel' 38)|") -ForegroundColor Yellow
                         Write-Host (Get-CenteredString "+$('-' * 40)+") -ForegroundColor Yellow
                         
                         $confirm = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
                         if ($confirm.VirtualKeyCode -eq 13) {
-                            Write-Host "`n" + (Get-CenteredString "Executing $($selected.Name)...") -ForegroundColor Yellow
-                            try {
-                                & $selected.FullPath
-                                Write-Host "`n" + (Get-CenteredString "Script executed successfully.") -ForegroundColor Green
+                            $scriptContent = Get-ScriptContent -DownloadUrl $selected.Path
+                            if ($null -ne $scriptContent) {
+                                $tempPath = Join-Path $env:TEMP "MysticTemp_$([Guid]::NewGuid()).ps1"
+                                Set-Content -Path $tempPath -Value $scriptContent
+                                
+                                try {
+                                    & $tempPath
+                                    Write-Host "`nScript executed successfully." -ForegroundColor Green
+                                }
+                                catch {
+                                    Write-Host "`nError executing script: $_" -ForegroundColor Red
+                                }
+                                finally {
+                                    Remove-Item -Path $tempPath -Force
+                                }
+                                
+                                Write-Host "`nPress any key to continue..."
+                                $null = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
                             }
-                            catch {
-                                Write-Host "`n" + (Get-CenteredString "Error executing script: $_") -ForegroundColor Red
-                            }
-                            Write-Host "`n" + (Get-CenteredString "Press any key to continue...")
-                            $null = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
                         }
                     }
-                }
-            }
-            8 { # Backspace
-                if ($Path -ne $PWD) {
-                    Show-Menu -Path (Split-Path $Path -Parent)
                 }
             }
             27 { # Escape
                 Clear-Host
                 Write-Host (Get-CenteredString "+$('-' * 40)+") -ForegroundColor Red
-                Write-Host (Get-CenteredString "|$(Get-BoxCenteredText 'Exit MysticToolbox?' 38)|") -ForegroundColor Red
-                Write-Host (Get-CenteredString "|$(Get-BoxCenteredText 'Press Enter to Exit or Esc to Stay' 38)|") -ForegroundColor Yellow
+                Write-Host (Get-CenteredString "|$(Get-BoxCenteredText 'Exit Browser?' 38)|") -ForegroundColor Red
                 Write-Host (Get-CenteredString "+$('-' * 40)+") -ForegroundColor Red
                 
                 $exitChoice = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
                 if ($exitChoice.VirtualKeyCode -eq 13) {
+                    $exit = $true
                     Clear-Host
-                    exit
                 }
             }
         }
     }
 }
 
-# Main execution
+# Cleanup function
+$cleanup = {
+    if (Test-Path "$env:TEMP\MysticBrowser.ps1") {
+        Remove-Item "$env:TEMP\MysticBrowser.ps1" -Force
+    }
+}
+
+# Register cleanup
+Register-EngineEvent -SourceIdentifier ([System.Management.Automation.PsEngineEvent]::Exiting) -Action $cleanup
+
+# Start the menu
 Show-Menu
