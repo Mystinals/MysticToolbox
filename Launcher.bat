@@ -20,21 +20,18 @@ if '%errorlevel%' NEQ '0' (
     pushd "%CD%"
     CD /D "%~dp0"
 
-:: Check for PowerShell 7+ or Preview
-powershell -Command "$pwsh = $null; $pwshPreview = $null; try { $pwsh = Get-Command pwsh -ErrorAction Stop } catch {}; try { $pwshPreview = Get-Command pwsh-preview -ErrorAction Stop } catch {}; if ($pwsh) { $version = & pwsh -Command '$PSVersionTable.PSVersion.Major' } elseif ($pwshPreview) { $version = & pwsh-preview -Command '$PSVersionTable.PSVersion.Major' } else { $version = 0 }; Write-Host $version" > "%temp%\ps_check.txt"
-set /p PS_VERSION=<"%temp%\ps_check.txt"
+:: Check for PowerShell 7+ availability without attempting installation
+powershell -Command "$pwsh = Get-Command pwsh -ErrorAction SilentlyContinue; if ($pwsh) { Write-Host 'PWS7OK' } else { Write-Host 'PWS7NO' }" > "%temp%\ps_check.txt"
+set /p PS_STATUS=<"%temp%\ps_check.txt"
 del "%temp%\ps_check.txt"
 
-if %PS_VERSION% LSS 7 (
+if "%PS_STATUS%"=="PWS7NO" (
     echo PowerShell 7+ not detected. Installing...
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "winget install --id Microsoft.PowerShell --accept-source-agreements"
-    if errorlevel 1 (
-        echo Winget installation failed. Trying direct download...
-        powershell -NoProfile -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri 'https://github.com/PowerShell/PowerShell/releases/download/v7.4.1/PowerShell-7.4.1-win-x64.msi' -OutFile '%temp%\pwsh7.msi'; Start-Process msiexec.exe -Wait -ArgumentList '/i %temp%\pwsh7.msi /quiet'"
-    )
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "winget install --id Microsoft.PowerShell --accept-source-agreements --disable-interactivity"
 )
 
 :: Download and execute the browser script
+echo Downloading MysticToolbox Browser...
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$browserScript = Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Mystinals/MysticToolbox/main/Scripts/Browser.ps1' -UseBasicParsing; Set-Content -Path '%temp%\MysticBrowser.ps1' -Value $browserScript.Content; Start-Process pwsh -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', '%temp%\MysticBrowser.ps1', 'https://api.github.com/repos/Mystinals/MysticToolbox/contents/Scripts'"
 
 exit
