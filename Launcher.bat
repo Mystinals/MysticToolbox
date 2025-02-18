@@ -20,8 +20,8 @@ if '%errorlevel%' NEQ '0' (
     pushd "%CD%"
     CD /D "%~dp0"
 
-:: Check for PowerShell 7+
-powershell -Command "$version = $PSVersionTable.PSVersion.Major; Write-Host $version" > "%temp%\ps_check.txt"
+:: Check for PowerShell 7+ or Preview
+powershell -Command "$pwsh = $null; $pwshPreview = $null; try { $pwsh = Get-Command pwsh -ErrorAction Stop } catch {}; try { $pwshPreview = Get-Command pwsh-preview -ErrorAction Stop } catch {}; if ($pwsh) { $version = & pwsh -Command '$PSVersionTable.PSVersion.Major' } elseif ($pwshPreview) { $version = & pwsh-preview -Command '$PSVersionTable.PSVersion.Major' } else { $version = 0 }; Write-Host $version" > "%temp%\ps_check.txt"
 set /p PS_VERSION=<"%temp%\ps_check.txt"
 del "%temp%\ps_check.txt"
 
@@ -35,6 +35,6 @@ if %PS_VERSION% LSS 7 (
 )
 
 :: Download and execute the browser script
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$browserScript = Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Mystinals/MysticToolbox/main/Browser.ps1' -UseBasicParsing; Set-Content -Path '%temp%\MysticBrowser.ps1' -Value $browserScript.Content; Start-Process pwsh -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', '%temp%\MysticBrowser.ps1', 'https://api.github.com/repos/Mystinals/MysticToolbox/contents'"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$browserScript = Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Mystinals/MysticToolbox/main/Scripts/Browser.ps1' -UseBasicParsing; Set-Content -Path '%temp%\MysticBrowser.ps1' -Value $browserScript.Content; Start-Process pwsh -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', '%temp%\MysticBrowser.ps1', 'https://api.github.com/repos/Mystinals/MysticToolbox/contents/Scripts'"
 
 exit
