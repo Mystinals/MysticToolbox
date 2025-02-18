@@ -1,2 +1,0 @@
-S:\MysticToolbox-V2\MTB\bin\Release\net9.0\win-x64\publish\MTB.pdb
-S:\MysticToolbox-V2\MTB\bin\Release\net9.0\win-x64\publish\MTB.exe
