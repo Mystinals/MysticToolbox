@@ -20,32 +20,27 @@ if '%errorlevel%' NEQ '0' (
     pushd "%CD%"
     CD /D "%~dp0"
 
-:: Check if pwsh is available in PATH
-where pwsh >nul 2>nul
-if %ERRORLEVEL% EQU 0 (
-    echo PowerShell 7+ detected, proceeding...
+:: Check for any version of PowerShell 7 (including RC and Preview)
+powershell -NoProfile -Command "$pwsh = Get-Command pwsh -ErrorAction SilentlyContinue; if ($pwsh) { Write-Host $pwsh.Version.Major }" > "%temp%\ps_version.txt"
+set /p PS_VERSION=<"%temp%\ps_version.txt"
+del "%temp%\ps_version.txt"
+
+if "%PS_VERSION%"=="7" (
+    echo PowerShell 7+ detected, proceeding with launch...
     goto LAUNCH
 )
 
-echo PowerShell 7+ not found, checking Windows Package Manager...
-where winget >nul 2>nul
-if %ERRORLEVEL% EQU 0 (
-    echo Installing PowerShell 7 using winget...
-    winget install --id Microsoft.PowerShell --silent --accept-source-agreements
-    if %ERRORLEVEL% EQU 0 (
-        echo PowerShell 7 installation completed.
-        goto LAUNCH
-    )
-)
-
-echo Unable to install PowerShell 7. Please install it manually from:
+:: Only reached if PowerShell 7 is not found
+echo PowerShell 7+ not detected. Please download and install from:
 echo https://github.com/PowerShell/PowerShell/releases/
-pause
+echo.
+echo Press any key to exit...
+pause >nul
 exit /b 1
 
 :LAUNCH
 :: Download and execute the browser script
 echo Downloading MysticToolbox Browser...
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$browserScript = Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Mystinals/MysticToolbox/main/Scripts/Browser.ps1' -UseBasicParsing; Set-Content -Path '%temp%\MysticBrowser.ps1' -Value $browserScript.Content; Start-Process pwsh -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', '%temp%\MysticBrowser.ps1', 'https://api.github.com/repos/Mystinals/MysticToolbox/contents/Scripts'"
+pwsh -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference = 'Stop'; try { $browserScript = Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Mystinals/MysticToolbox/main/Scripts/Browser.ps1' -UseBasicParsing; Set-Content -Path '%temp%\MysticBrowser.ps1' -Value $browserScript.Content; Start-Process pwsh -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', '%temp%\MysticBrowser.ps1', 'https://api.github.com/repos/Mystinals/MysticToolbox/contents/Scripts' } catch { Write-Host 'Error: ' + $_.Exception.Message; pause }"
 
 exit
