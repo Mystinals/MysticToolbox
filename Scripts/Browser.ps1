@@ -1,4 +1,4 @@
-# MysticToolbox Local Directory Browser
+# MysticToolbox Repository Browser
 # Version: 1.0
 
 function Get-CenteredString {
@@ -24,35 +24,48 @@ function Get-BoxCenteredText {
     return (" " * [math]::Floor($padding)) + $Text + (" " * [math]::Ceiling($padding))
 }
 
+function Get-RepoContents {
+    param (
+        [string]$Path = "Scripts"
+    )
+    
+    try {
+        $apiUrl = "https://api.github.com/repos/Mystinals/MysticToolbox/contents/$Path"
+        $response = Invoke-RestMethod -Uri $apiUrl -Method Get -Headers @{
+            'Accept' = 'application/vnd.github.v3+json'
+        }
+        return $response
+    }
+    catch {
+        Write-Host "Error fetching repository contents: $_" -ForegroundColor Red
+        return @()
+    }
+}
+
 function Show-Menu {
     param (
-        [string]$Path = $PWD
+        [string]$Path = "Scripts"
     )
     
     $items = @()
-    if ($Path -ne $PWD) {
+    if ($Path -ne "Scripts") {
+        $parentPath = $Path -replace '/[^/]+$', ''
+        if ($parentPath -eq "") { $parentPath = "Scripts" }
         $items += @{
             Name = ".."
             Type = "Parent"
-            FullPath = (Split-Path $Path -Parent)
+            Path = $parentPath
+            DownloadUrl = $null
         }
     }
     
-    Get-ChildItem $Path -Directory | ForEach-Object {
+    $repoContents = Get-RepoContents -Path $Path
+    foreach ($item in $repoContents) {
         $items += @{
-            Name = $_.Name
-            Type = "Directory"
-            FullPath = $_.FullName
-        }
-    }
-    
-    Get-ChildItem $Path -Filter "*.ps1" | ForEach-Object {
-        if ($_.Name -ne 'local-menu.ps1') {
-            $items += @{
-                Name = $_.Name
-                Type = "Script"
-                FullPath = $_.FullName
-            }
+            Name = $item.name
+            Type = $item.type
+            Path = $item.path
+            DownloadUrl = $item.download_url
         }
     }
     
@@ -67,14 +80,14 @@ function Show-Menu {
         # Display top box
         $topBox = @(
             (Get-CenteredString "+$horizontalLine+"),
-            (Get-CenteredString "|$(Get-BoxCenteredText 'MysticToolbox Directory' ($boxWidth - 2))|"),
+            (Get-CenteredString "|$(Get-BoxCenteredText 'MysticToolbox Repository Browser' ($boxWidth - 2))|"),
             (Get-CenteredString "|$(Get-BoxCenteredText "PowerShell Version: $($PSVersionTable.PSVersion.ToString())" ($boxWidth - 2))|"),
             (Get-CenteredString "|$(Get-BoxCenteredText "Current Path: $Path" ($boxWidth - 2))|"),
             (Get-CenteredString "+$horizontalLine+")
         )
         
         foreach ($line in $topBox) {
-            Write-Host $line -ForegroundColor 'Cyan'
+            Write-Host $line -ForegroundColor Cyan
         }
         
         Write-Host ""
@@ -84,20 +97,20 @@ function Show-Menu {
             $item = $items[$i]
             $prefix = switch ($item.Type) {
                 "Parent" { "[..]" }
-                "Directory" { "[>]" }
-                "Script" { "(*)" }
+                "dir" { "[>]" }
+                "file" { "(*)" }
             }
             
             $color = switch ($item.Type) {
                 "Parent" { 'Gray' }
-                "Directory" { 'Cyan' }
-                "Script" { 'Green' }
-                default { 'White' }  # Fallback color
+                "dir" { 'Cyan' }
+                "file" { 'Green' }
+                default { 'White' }
             }
             
             $itemText = "$prefix $($item.Name)"
             $centeredText = Get-CenteredString $itemText
-
+            
             if ($i -eq $selectedIndex) {
                 $textStart = $centeredText.IndexOf($itemText)
                 $textLength = $itemText.Length
@@ -120,7 +133,7 @@ function Show-Menu {
         )
         
         foreach ($line in $bottomBox) {
-            Write-Host $line -ForegroundColor 'DarkCyan'
+            Write-Host $line -ForegroundColor DarkCyan
         }
         
         $key = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
@@ -135,35 +148,43 @@ function Show-Menu {
             13 { # Enter
                 $selected = $items[$selectedIndex]
                 switch ($selected.Type) {
-                    "Parent" { Show-Menu -Path $selected.FullPath }
-                    "Directory" { Show-Menu -Path $selected.FullPath }
-                    "Script" {
-                        Clear-Host
-                        Write-Host (Get-CenteredString "+$('-' * 40)+") -ForegroundColor Yellow
-                        Write-Host (Get-CenteredString "|$(Get-BoxCenteredText 'Execute Script?' 38)|") -ForegroundColor Yellow
-                        Write-Host (Get-CenteredString "|$(Get-BoxCenteredText $selected.Name 38)|") -ForegroundColor White
-                        Write-Host (Get-CenteredString "|$(Get-BoxCenteredText 'Press Enter to confirm or Esc to cancel' 38)|") -ForegroundColor Yellow
-                        Write-Host (Get-CenteredString "+$('-' * 40)+") -ForegroundColor Yellow
-                        
-                        $confirm = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-                        if ($confirm.VirtualKeyCode -eq 13) {
-                            Write-Host "`n" + (Get-CenteredString "Executing $($selected.Name)...") -ForegroundColor Yellow
-                            try {
-                                & $selected.FullPath
-                                Write-Host "`n" + (Get-CenteredString "Script executed successfully.") -ForegroundColor Green
+                    "Parent" { Show-Menu -Path $selected.Path }
+                    "dir" { Show-Menu -Path $selected.Path }
+                    "file" {
+                        if ($selected.Name -match '\.ps1$') {
+                            Clear-Host
+                            Write-Host (Get-CenteredString "+$('-' * 40)+") -ForegroundColor Yellow
+                            Write-Host (Get-CenteredString "|$(Get-BoxCenteredText 'Execute Script?' 38)|") -ForegroundColor Yellow
+                            Write-Host (Get-CenteredString "|$(Get-BoxCenteredText $selected.Name 38)|") -ForegroundColor White
+                            Write-Host (Get-CenteredString "|$(Get-BoxCenteredText 'Press Enter to confirm or Esc to cancel' 38)|") -ForegroundColor Yellow
+                            Write-Host (Get-CenteredString "+$('-' * 40)+") -ForegroundColor Yellow
+                            
+                            $confirm = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+                            if ($confirm.VirtualKeyCode -eq 13) {
+                                Write-Host "`n" + (Get-CenteredString "Downloading and executing $($selected.Name)...") -ForegroundColor Yellow
+                                try {
+                                    $script = (Invoke-WebRequest -Uri $selected.DownloadUrl -UseBasicParsing).Content
+                                    $scriptPath = Join-Path $env:TEMP $selected.Name
+                                    Set-Content -Path $scriptPath -Value $script
+                                    & $scriptPath
+                                    Remove-Item $scriptPath
+                                    Write-Host "`n" + (Get-CenteredString "Script executed successfully.") -ForegroundColor Green
+                                }
+                                catch {
+                                    Write-Host "`n" + (Get-CenteredString "Error executing script: $_") -ForegroundColor Red
+                                }
+                                Write-Host "`n" + (Get-CenteredString "Press any key to continue...")
+                                $null = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
                             }
-                            catch {
-                                Write-Host "`n" + (Get-CenteredString "Error executing script: $_") -ForegroundColor Red
-                            }
-                            Write-Host "`n" + (Get-CenteredString "Press any key to continue...")
-                            $null = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
                         }
                     }
                 }
             }
             8 { # Backspace
-                if ($Path -ne $PWD) {
-                    Show-Menu -Path (Split-Path $Path -Parent)
+                if ($Path -ne "Scripts") {
+                    $parentPath = $Path -replace '/[^/]+$', ''
+                    if ($parentPath -eq "") { $parentPath = "Scripts" }
+                    Show-Menu -Path $parentPath
                 }
             }
             27 { # Escape
