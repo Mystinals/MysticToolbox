@@ -15,33 +15,6 @@ function Get-BoxWidth {
     return [math]::Min(80, $windowWidth - 4)
 }
 
-function Get-BoxCenteredText {
-    param (
-        [string]$Text,
-        [int]$Width
-    )
-    $padding = [math]::Max(0, ($Width - $Text.Length) / 2)
-    return (" " * [math]::Floor($padding)) + $Text + (" " * [math]::Ceiling($padding))
-}
-
-function Get-RepoContents {
-    param (
-        [string]$Path = "Scripts"
-    )
-    
-    try {
-        $apiUrl = "https://api.github.com/repos/Mystinals/MysticToolbox/contents/$Path"
-        $response = Invoke-RestMethod -Uri $apiUrl -Method Get -Headers @{
-            'Accept' = 'application/vnd.github.v3+json'
-        }
-        return $response
-    }
-    catch {
-        Write-Host "Error fetching repository contents: $_" -ForegroundColor Red
-        return @()
-    }
-}
-
 function Show-Menu {
     param (
         [string]$Path = "Scripts"
@@ -59,14 +32,22 @@ function Show-Menu {
         }
     }
     
-    $repoContents = Get-RepoContents -Path $Path
-    foreach ($item in $repoContents) {
-        $items += @{
-            Name = $item.name
-            Type = $item.type
-            Path = $item.path
-            DownloadUrl = $item.download_url
+    try {
+        $apiUrl = "https://api.github.com/repos/Mystinals/MysticToolbox/contents/$Path"
+        $repoContents = Invoke-RestMethod -Uri $apiUrl -Method Get -Headers @{
+            'Accept' = 'application/vnd.github.v3+json'
         }
+        foreach ($item in $repoContents) {
+            $items += @{
+                Name = $item.name
+                Type = $item.type
+                Path = $item.path
+                DownloadUrl = $item.download_url
+            }
+        }
+    }
+    catch {
+        Write-Host "Error fetching repository contents: $_" -ForegroundColor Red
     }
     
     $selectedIndex = 0
@@ -75,24 +56,17 @@ function Show-Menu {
     while (-not $exit) {
         Clear-Host
         $boxWidth = Get-BoxWidth
-        $horizontalLine = "-" * ($boxWidth - 2)
+        $separator = "─".PadRight($boxWidth, '─')
         
-        # Display top box
-        $topBox = @(
-            (Get-CenteredString "─".PadRight($boxWidth, '─')),
-            (Get-CenteredString (Get-BoxCenteredText 'Mystic Toolbox' ($boxWidth))),
-            (Get-CenteredString (Get-BoxCenteredText "PowerShell Version: $($PSVersionTable.PSVersion.ToString())" ($boxWidth))),
-            (Get-CenteredString (Get-BoxCenteredText "Current Path: $Path" ($boxWidth))),
-            (Get-CenteredString "─".PadRight($boxWidth, '─'))
-        )
-        
-        foreach ($line in $topBox) {
-            Write-Host $line -ForegroundColor Cyan
-        }
-        
+        # Header
+        Write-Host (Get-CenteredString $separator) -ForegroundColor Cyan
+        Write-Host (Get-CenteredString "Mystic Toolbox") -ForegroundColor Cyan
+        Write-Host (Get-CenteredString "PowerShell Version: $($PSVersionTable.PSVersion.ToString())") -ForegroundColor Cyan
+        Write-Host (Get-CenteredString "Current Path: $Path") -ForegroundColor Cyan
+        Write-Host (Get-CenteredString $separator) -ForegroundColor Cyan
         Write-Host ""
         
-        # Display menu items
+        # Menu items
         foreach ($i in 0..($items.Count - 1)) {
             $item = $items[$i]
             $prefix = switch ($item.Type) {
@@ -123,35 +97,35 @@ function Show-Menu {
             }
         }
         
-        # Display bottom box
         Write-Host ""
-        $bottomBox = @(
-            (Get-CenteredString "─".PadRight($boxWidth, '─')),
-            (Get-CenteredString (Get-BoxCenteredText 'Navigation Controls' ($boxWidth))),
-            (Get-CenteredString (Get-BoxCenteredText "$([char]0x2191)$([char]0x2193) Move" ($boxWidth))),
-            (Get-CenteredString (Get-BoxCenteredText "Enter Select | Backspace Back | Esc Exit" ($boxWidth))),
-            (Get-CenteredString "─".PadRight($boxWidth, '─'))
-        )
+        # Navigation Controls
+        Write-Host (Get-CenteredString $separator) -ForegroundColor Cyan
+        Write-Host (Get-CenteredString "Navigation Controls") -ForegroundColor Yellow
+        Write-Host (Get-CenteredString "↑↓ Move") -ForegroundColor Cyan
         
-        # Display navigation controls with colors
-        Write-Host $bottomBox[0] -ForegroundColor DarkCyan
-        Write-Host $bottomBox[1] -ForegroundColor Yellow
+        # Action Keys
+        $actionLine = "Enter Select | Backspace Back | Esc Exit"
+        $centeredActionLine = Get-CenteredString $actionLine
+        $parts = $actionLine.Split('|').Trim()
         
-        # Split and color the arrow keys
-        $arrowLine = $bottomBox[2]
-        Write-Host $arrowLine.Substring(0, $arrowLine.IndexOf('Move')) -ForegroundColor Cyan -NoNewline
-        Write-Host 'Move' -ForegroundColor White
+        $startPos = $centeredActionLine.IndexOf($actionLine)
+        Write-Host $centeredActionLine.Substring(0, $startPos) -NoNewline
         
-        # Split and color the action keys
-        $actionLine = $bottomBox[3]
-        Write-Host (Get-CenteredString "Enter") -ForegroundColor Green -NoNewline
-        Write-Host " Select | " -ForegroundColor Gray -NoNewline
+        # Enter Select
+        Write-Host "Enter" -ForegroundColor Green -NoNewline
+        Write-Host " Select" -ForegroundColor Gray -NoNewline
+        Write-Host " | " -ForegroundColor DarkGray -NoNewline
+        
+        # Backspace Back
         Write-Host "Backspace" -ForegroundColor Yellow -NoNewline
-        Write-Host " Back | " -ForegroundColor Gray -NoNewline
+        Write-Host " Back" -ForegroundColor Gray -NoNewline
+        Write-Host " | " -ForegroundColor DarkGray -NoNewline
+        
+        # Esc Exit
         Write-Host "Esc" -ForegroundColor Red -NoNewline
         Write-Host " Exit" -ForegroundColor Gray
         
-        Write-Host $bottomBox[4] -ForegroundColor DarkCyan
+        Write-Host (Get-CenteredString $separator) -ForegroundColor Cyan
         
         $key = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
         
@@ -170,11 +144,11 @@ function Show-Menu {
                     "file" {
                         if ($selected.Name -match '\.ps1$') {
                             Clear-Host
-                            Write-Host (Get-CenteredString "+$('-' * 40)+") -ForegroundColor Yellow
-                            Write-Host (Get-CenteredString "|$(Get-BoxCenteredText 'Execute Script?' 38)|") -ForegroundColor Yellow
-                            Write-Host (Get-CenteredString "|$(Get-BoxCenteredText $selected.Name 38)|") -ForegroundColor White
-                            Write-Host (Get-CenteredString "|$(Get-BoxCenteredText 'Press Enter to confirm or Esc to cancel' 38)|") -ForegroundColor Yellow
-                            Write-Host (Get-CenteredString "+$('-' * 40)+") -ForegroundColor Yellow
+                            Write-Host (Get-CenteredString "─".PadRight(40, '─')) -ForegroundColor Yellow
+                            Write-Host (Get-CenteredString "Execute Script?") -ForegroundColor Yellow
+                            Write-Host (Get-CenteredString $selected.Name) -ForegroundColor White
+                            Write-Host (Get-CenteredString "Press Enter to confirm or Esc to cancel") -ForegroundColor Yellow
+                            Write-Host (Get-CenteredString "─".PadRight(40, '─')) -ForegroundColor Yellow
                             
                             $confirm = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
                             if ($confirm.VirtualKeyCode -eq 13) {
@@ -206,10 +180,10 @@ function Show-Menu {
             }
             27 { # Escape
                 Clear-Host
-                Write-Host (Get-CenteredString "+$('-' * 40)+") -ForegroundColor Red
-                Write-Host (Get-CenteredString "|$(Get-BoxCenteredText 'Exit MysticToolbox?' 38)|") -ForegroundColor Red
-                Write-Host (Get-CenteredString "|$(Get-BoxCenteredText 'Press Enter to Exit or Esc to Stay' 38)|") -ForegroundColor Yellow
-                Write-Host (Get-CenteredString "+$('-' * 40)+") -ForegroundColor Red
+                Write-Host (Get-CenteredString "─".PadRight(40, '─')) -ForegroundColor Red
+                Write-Host (Get-CenteredString "Exit MysticToolbox?") -ForegroundColor Red
+                Write-Host (Get-CenteredString "Press Enter to Exit or Esc to Stay") -ForegroundColor Yellow
+                Write-Host (Get-CenteredString "─".PadRight(40, '─')) -ForegroundColor Red
                 
                 $exitChoice = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
                 if ($exitChoice.VirtualKeyCode -eq 13) {
