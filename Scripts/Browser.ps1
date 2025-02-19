@@ -50,8 +50,14 @@ function Show-Menu {
     
     while (-not $exit) {
         Clear-Host
+        $windowHeight = $host.UI.RawUI.WindowSize.Height
         $width = $host.UI.RawUI.WindowSize.Width
         $separator = "─" * ($width - 2)
+        
+        # Calculate required space
+        $headerLines = 5  # Title + Version + Path + 2 separators
+        $footerLines = 4  # Navigation Controls + Move + Actions + separator
+        $availableLines = $windowHeight - $headerLines - $footerLines - 3  # -3 for spacing
         
         # Header section
         Write-Host (Get-CenteredString $separator) -ForegroundColor Cyan
@@ -85,9 +91,14 @@ function Show-Menu {
             }
         }
         
-        Write-Host ""
+        # Fill remaining space with empty lines
+        $currentLine = $headerLines + $items.Count + 1
+        $emptyLines = $windowHeight - $currentLine - $footerLines
+        if ($emptyLines -gt 0) {
+            1..$emptyLines | ForEach-Object { Write-Host "" }
+        }
         
-        # Navigation controls with exact alignment
+        # Navigation controls at bottom
         Write-Host (Get-CenteredString $separator) -ForegroundColor Cyan
         Write-Host (Get-CenteredString "Navigation Controls") -ForegroundColor Yellow
         Write-Host (Get-CenteredString "↑↓ Move") -ForegroundColor Cyan
