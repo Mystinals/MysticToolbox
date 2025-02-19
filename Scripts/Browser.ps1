@@ -87,27 +87,24 @@ function Show-Menu {
         
         Write-Host ""
         
-        # Navigation controls
+        # Navigation controls with exact alignment
         Write-Host (Get-CenteredString $separator) -ForegroundColor Cyan
         Write-Host (Get-CenteredString "Navigation Controls") -ForegroundColor Yellow
         Write-Host (Get-CenteredString "↑↓ Move") -ForegroundColor Cyan
         
-        # Build the control line piece by piece to ensure perfect centering
-        $controlLine = Get-CenteredString "Enter Select | Backspace Back | Esc Exit"
-        $startPos = $controlLine.IndexOf("Enter")
-        Write-Host $controlLine.Substring(0, $startPos) -NoNewline
+        # Action keys in one line with exact spacing
+        $controlText = "Enter Select | Backspace Back | Esc Exit"
+        $centeredControl = Get-CenteredString $controlText
         
-        # Enter Select
+        $startPos = $centeredControl.IndexOf($controlText)
+        Write-Host $centeredControl.Substring(0, $startPos) -NoNewline
+        
         Write-Host "Enter" -ForegroundColor Green -NoNewline
-        Write-Host " Select | " -ForegroundColor Gray -NoNewline
-        
-        # Backspace Back
+        Write-Host " Select | " -ForegroundColor DarkGray -NoNewline
         Write-Host "Backspace" -ForegroundColor Yellow -NoNewline
-        Write-Host " Back | " -ForegroundColor Gray -NoNewline
-        
-        # Esc Exit
+        Write-Host " Back | " -ForegroundColor DarkGray -NoNewline
         Write-Host "Esc" -ForegroundColor Red -NoNewline
-        Write-Host " Exit" -ForegroundColor Gray
+        Write-Host " Exit" -ForegroundColor DarkGray
         
         Write-Host (Get-CenteredString $separator) -ForegroundColor Cyan
         
