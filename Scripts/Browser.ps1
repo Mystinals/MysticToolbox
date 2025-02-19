@@ -79,11 +79,11 @@ function Show-Menu {
         
         # Display top box
         $topBox = @(
-            (Get-CenteredString "+$horizontalLine+"),
-            (Get-CenteredString "|$(Get-BoxCenteredText 'MysticToolbox Repository Browser' ($boxWidth - 2))|"),
-            (Get-CenteredString "|$(Get-BoxCenteredText "PowerShell Version: $($PSVersionTable.PSVersion.ToString())" ($boxWidth - 2))|"),
-            (Get-CenteredString "|$(Get-BoxCenteredText "Current Path: $Path" ($boxWidth - 2))|"),
-            (Get-CenteredString "+$horizontalLine+")
+            (Get-CenteredString "─".PadRight($boxWidth, '─')),
+            (Get-CenteredString (Get-BoxCenteredText 'Mystic Toolbox' ($boxWidth))),
+            (Get-CenteredString (Get-BoxCenteredText "PowerShell Version: $($PSVersionTable.PSVersion.ToString())" ($boxWidth))),
+            (Get-CenteredString (Get-BoxCenteredText "Current Path: $Path" ($boxWidth))),
+            (Get-CenteredString "─".PadRight($boxWidth, '─'))
         )
         
         foreach ($line in $topBox) {
@@ -126,15 +126,32 @@ function Show-Menu {
         # Display bottom box
         Write-Host ""
         $bottomBox = @(
-            (Get-CenteredString "+$horizontalLine+"),
-            (Get-CenteredString "|$(Get-BoxCenteredText 'Navigation Controls' ($boxWidth - 2))|"),
-            (Get-CenteredString "|$(Get-BoxCenteredText 'UP/DOWN (Move) | Enter (Select) | Backspace (Back) | Esc (Exit)' ($boxWidth - 2))|"),
-            (Get-CenteredString "+$horizontalLine+")
+            (Get-CenteredString "─".PadRight($boxWidth, '─')),
+            (Get-CenteredString (Get-BoxCenteredText 'Navigation Controls' ($boxWidth))),
+            (Get-CenteredString (Get-BoxCenteredText "$([char]0x2191)$([char]0x2193) Move" ($boxWidth))),
+            (Get-CenteredString (Get-BoxCenteredText "Enter Select | Backspace Back | Esc Exit" ($boxWidth))),
+            (Get-CenteredString "─".PadRight($boxWidth, '─'))
         )
         
-        foreach ($line in $bottomBox) {
-            Write-Host $line -ForegroundColor DarkCyan
-        }
+        # Display navigation controls with colors
+        Write-Host $bottomBox[0] -ForegroundColor DarkCyan
+        Write-Host $bottomBox[1] -ForegroundColor Yellow
+        
+        # Split and color the arrow keys
+        $arrowLine = $bottomBox[2]
+        Write-Host $arrowLine.Substring(0, $arrowLine.IndexOf('Move')) -ForegroundColor Cyan -NoNewline
+        Write-Host 'Move' -ForegroundColor White
+        
+        # Split and color the action keys
+        $actionLine = $bottomBox[3]
+        Write-Host (Get-CenteredString "Enter") -ForegroundColor Green -NoNewline
+        Write-Host " Select | " -ForegroundColor Gray -NoNewline
+        Write-Host "Backspace" -ForegroundColor Yellow -NoNewline
+        Write-Host " Back | " -ForegroundColor Gray -NoNewline
+        Write-Host "Esc" -ForegroundColor Red -NoNewline
+        Write-Host " Exit" -ForegroundColor Gray
+        
+        Write-Host $bottomBox[4] -ForegroundColor DarkCyan
         
         $key = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
         
