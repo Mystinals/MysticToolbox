@@ -1,9 +1,8 @@
 @echo off
 title MysticToolbox Launcher
 mode con: cols=100 lines=30
-color 0B
 
-:: Request admin privileges
+:: Run as admin
 >nul 2>&1 "%SYSTEMROOT%\system32\cacls.exe" "%SYSTEMROOT%\system32\config\system"
 if '%errorlevel%' NEQ '0' (
     echo Requesting administrative privileges...
@@ -21,21 +20,13 @@ if '%errorlevel%' NEQ '0' (
     pushd "%CD%"
     CD /D "%~dp0"
 
-:: Check for PowerShell 7+
-powershell -NoProfile -Command "$pwsh = Get-Command pwsh -ErrorAction SilentlyContinue; if ($pwsh) { Write-Host 'PS7_FOUND'; Write-Host $pwsh.Source }" > "%temp%\ps_check.txt"
-set /p PS_STATUS=<"%temp%\ps_check.txt"
-set /p PS_PATH=<"%temp%\ps_check.txt"
-del "%temp%\ps_check.txt"
-
-if not "%PS_STATUS%"=="PS7_FOUND" (
-    echo PowerShell 7 or newer is required but not found.
-    echo.
-    echo Would you like to install PowerShell 7 now? (Y/N)
+:: Check for PowerShell 7
+powershell -NoProfile -Command "$pwsh = Get-Command pwsh -ErrorAction SilentlyContinue; if ($pwsh) { exit 0 } else { exit 1 }"
+if errorlevel 1 (
+    echo PowerShell 7+ not detected. Would you like to install it? (Y/N)
     choice /C YN /N /M "> "
     if errorlevel 2 goto END
     if errorlevel 1 (
-        echo.
-        echo Opening PowerShell download page...
         start https://github.com/PowerShell/PowerShell/releases/latest
         echo Please install PowerShell 7 and run this launcher again.
         pause
@@ -43,13 +34,9 @@ if not "%PS_STATUS%"=="PS7_FOUND" (
     )
 )
 
-:: Set execution policy and launch browser script
-echo Setting up environment...
-powershell -NoProfile -Command "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force"
-
-:: Download and execute the browser script
+:: Launch browser script
 echo Launching MysticToolbox...
-pwsh -NoProfile -ExecutionPolicy Bypass -Command "$script = Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Mystinals/MysticToolbox/main/Scripts/Browser.ps1' -UseBasicParsing; Set-Content -Path '%temp%\Browser.ps1' -Value $script.Content; & '%temp%\Browser.ps1'"
+start pwsh -NoProfile -ExecutionPolicy Bypass -Command "& { $script = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Mystinals/MysticToolbox/main/Scripts/Browser.ps1' -UseBasicParsing).Content; $scriptPath = Join-Path $env:TEMP 'Browser.ps1'; Set-Content -Path $scriptPath -Value $script; & $scriptPath; Remove-Item $scriptPath }"
 
 :END
 exit /b
